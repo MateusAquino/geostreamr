@@ -226,8 +226,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           if (msg.type === "geo-streamr/kill-audio-loop") {
             if (window.__GEO_STREAMR.muteInterval)
               clearInterval(window.__GEO_STREAMR.muteInterval);
-            if (document.querySelector("[class^=center-content_dotsAnimation]"))
-              window.__GEO_STREAMR.muteCurrent();
+            window.__GEO_STREAMR.muteCurrent();
             window.__GEO_STREAMR.muteInterval = setInterval(() => {
               if (
                 document.querySelector("[class^=center-content_dotsAnimation]")

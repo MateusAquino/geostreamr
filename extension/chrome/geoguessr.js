@@ -239,7 +239,22 @@ function subscribeToDocumentChanges() {
 
 function refreshTrackedButton() {
   const candidate = document.querySelector(FUNCTION_LOCK_SELECTOR);
-  if (!candidate) return;
+  if (!candidate) {
+    if (trackedButton) {
+      detachButtonObserver();
+      detachButtonClickHandler();
+      clearNodeKeyAttributes(trackedButton);
+      resetNodeMappings();
+
+      if (trackedButton.isConnected) {
+        trackedButton.classList.remove(HIDDEN_CLASS, SENSITIVE_CLASS);
+      }
+
+      trackedButton = null;
+      scheduleBroadcast(true);
+    }
+    return;
+  }
 
   if (candidate === trackedButton && candidate?.isConnected) {
     applyVisibilityState();
@@ -264,7 +279,7 @@ function refreshTrackedButton() {
     trackedButton = null;
   }
 
-  scheduleBroadcast();
+  scheduleBroadcast(true);
 }
 
 function attachButtonObserver(button) {

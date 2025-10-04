@@ -231,24 +231,68 @@ function applyMirrorUpdate(payload) {
   state.mirrorAvailable = available;
   state.hiddenInPage = Boolean(payload?.hiddenInPage);
 
-  if (available && ui.mirrorContainer) {
+  if (!available) {
+    state.primaryTargetKey = null;
+    state.primaryPathKeys = [];
+
+    if (ui.mirrorContainer) {
+      ui.mirrorContainer.hidden = true;
+      ui.mirrorContainer.innerHTML = "";
+    }
+
+    if (ui.placeholderMessage) {
+      ui.placeholderMessage.textContent = state.hiddenInPage
+        ? "GeoGuessr controls are hidden in the host tab."
+        : "Searching for GeoGuessr duels controls…";
+    }
+
+    setStatus(
+      state.hiddenInPage ? "Control hidden" : "Looking for controls",
+      state.hiddenInPage
+        ? "Unhide the control in the GeoGuessr tab to continue."
+        : "Stay on the duel screen; GeoStreamr will mirror controls automatically.",
+      state.hiddenInPage ? "warn" : "info"
+    );
+
+    updateVisibilityIndicator(state.hiddenInPage);
+    return;
+  }
+
+  if (ui.mirrorContainer) {
     ui.mirrorContainer.hidden = false;
     ui.mirrorContainer.innerHTML = payload.html;
   }
 
-  if (available) {
-    const disabled = Boolean(payload?.disabled);
-    const detail = disabled
-      ? "GeoGuessr paused this control for a moment."
-      : "You're ready to play! Please keep the extension popup open, otherwise the connection will close.";
+  const mirrorRoot = ui.mirrorContainer?.querySelector(
+    '[data-geo-streamr-mirror-root="true"]'
+  );
+  const primaryNode = mirrorRoot
+    ? mirrorRoot.matches(`[${MIRROR_NODE_KEY_ATTR}]`)
+      ? mirrorRoot
+      : mirrorRoot.querySelector(`[${MIRROR_NODE_KEY_ATTR}]`)
+    : null;
 
-    setStatus(
-      disabled ? "Control paused" : "Controls mirrored",
-      detail,
-      disabled ? "warn" : "success"
-    );
-  } else {
+  state.primaryTargetKey =
+    primaryNode?.getAttribute(MIRROR_NODE_KEY_ATTR) || null;
+  state.primaryPathKeys = primaryNode ? collectAncestorKeys(primaryNode) : [];
+
+  if (ui.placeholderMessage) {
+    const primaryLabel = extractPrimaryActionText(primaryNode || mirrorRoot);
+    ui.placeholderMessage.textContent = primaryLabel
+      ? `Tap “${primaryLabel}” to play.`
+      : "Controls mirrored from GeoGuessr.";
   }
+
+  const disabled = Boolean(payload?.disabled);
+  const detail = disabled
+    ? "GeoGuessr paused this control for a moment."
+    : "You're ready to play! Please keep the extension popup open, otherwise the connection will close.";
+
+  setStatus(
+    disabled ? "Control paused" : "Controls mirrored",
+    detail,
+    disabled ? "warn" : "success"
+  );
 
   updateVisibilityIndicator(state.hiddenInPage);
 }
@@ -585,11 +629,6 @@ function setStatus(text, detail, tone = "info") {
   } else {
     ui.mirrorFrame.style.display = "flex";
     ui.directInfo.style.display = "none";
-  }
-  if (tone === "success") {
-    ui.mirrorContainer.hidden = false;
-  } else {
-    ui.mirrorContainer.hidden = true;
   }
   if (typeof detail === "string") {
     state.statusDetail = detail;
