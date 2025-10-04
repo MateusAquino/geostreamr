@@ -191,17 +191,18 @@ function handleDataChannelMessage(event) {
     return;
   }
 
-  console.log(message);
   switch (message.type) {
     case "queue-started":
       ui.placeholderMessage.textContent =
-        "You are in the queue, please wait...";
+        "You are secretly in the queue, please wait...";
       ui.mirrorContainer.hidden = true;
+      document.querySelector("main").classList.add("queueing");
       break;
     case "queue-ended":
       ui.placeholderMessage.textContent =
         "Searching for GeoGuessr duels controls…";
       ui.mirrorContainer.hidden = false;
+      document.querySelector("main").classList.remove("queueing");
       break;
 
     case "mirror-update":

@@ -35,7 +35,6 @@ const state = {
 document.addEventListener("DOMContentLoaded", init);
 chrome.runtime.onMessage.addListener(handleRuntimeMessage);
 chrome.tabs.onRemoved.addListener(handleTabRemoved);
-chrome.tabs.onActivated.addListener(() => console.log("onActivated"));
 
 chrome.tabs.onUpdated.addListener(() => {
   if (!state.successfulHandshake) connectToGeoGuessrTab();
@@ -159,7 +158,7 @@ async function connectToGeoGuessrTab() {
 }
 
 async function openPopupHandshake() {
-  console.log("Opening popup handshake");
+  console.debug("Opening popup handshake");
   if (!state.connectedTabId) {
     return;
   }
@@ -297,8 +296,11 @@ function handleRuntimeMessage(message, sender, sendResponse) {
     return;
   }
   if (message.type === "geo-streamr/start-queue") {
-    ui.placeholderMessage.textContent = "You are in the queue, please wait...";
+    ui.placeholderMessage.textContent =
+      "You are secretly in the queue, please wait...";
     ui.mirrorContainer.hidden = true;
+    ui.queued = true;
+    document.querySelector("main").classList.add("queueing");
     sendPhoneMessage({ type: "queue-started" });
     return;
   }
@@ -306,6 +308,8 @@ function handleRuntimeMessage(message, sender, sendResponse) {
     ui.placeholderMessage.textContent =
       "Searching for GeoGuessr duels controls…";
     ui.mirrorContainer.hidden = false;
+    ui.queued = false;
+    document.querySelector("main").classList.remove("queueing");
     sendPhoneMessage({ type: "queue-ended" });
     return;
   }
@@ -345,6 +349,7 @@ function handleTabRemoved(tabId) {
 }
 
 function applyMirrorUpdate(payload) {
+  if (ui.queued) return;
   const available = Boolean(payload?.available && payload?.html);
   state.mirrorAvailable = available;
 

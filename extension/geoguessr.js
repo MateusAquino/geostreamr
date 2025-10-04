@@ -186,9 +186,6 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         eventTarget.matches('[data-qa="function-lock"] *') &&
         message?.event === "pointerup"
       ) {
-        setTimeout(() => {
-          chrome.runtime.sendMessage({ type: "geo-streamr/kill-audio" });
-        }, 10);
         handleFunctionLockClick();
       }
       const controlRoot = getTrackedButton();
@@ -382,6 +379,7 @@ function freezeAvatarsIfPossible() {
     playerInfo.appendChild(clonedContainer);
   });
   if (frozeAny) {
+    chrome.runtime.sendMessage({ type: "geo-streamr/kill-audio-loop" });
     chrome.runtime.sendMessage({ type: "geo-streamr/start-queue" });
     avatarFreezeActive = true;
     setTimeout(() => startAvatarFreezePolling(), 100);
@@ -399,9 +397,6 @@ function safeCanvasToDataUrl(canvas) {
 
 function startAvatarFreezePolling() {
   stopAvatarFreezePolling();
-
-  chrome.runtime.sendMessage({ type: "geo-streamr/kill-audio" });
-
   avatarFreezePollingId = setInterval(() => {
     if (!avatarFreezeActive) {
       stopAvatarFreezePolling();
@@ -411,14 +406,12 @@ function startAvatarFreezePolling() {
     const dotsPresent = Boolean(document.querySelector(DOTS_SELECTOR));
 
     if (!dotsPresent) {
-      console.log("Dots disappeared, unfreezing avatars");
+      console.debug("Dots disappeared, unfreezing avatars");
       stopAvatarFreezePolling();
       unfreezeAvatars();
       dispatchResizeEvent();
-    } else {
-      chrome.runtime.sendMessage({ type: "geo-streamr/kill-audio" });
     }
-  }, 300);
+  }, 20);
 }
 
 function stopAvatarFreezePolling() {
@@ -429,6 +422,7 @@ function stopAvatarFreezePolling() {
 }
 
 function unfreezeAvatars() {
+  chrome.runtime.sendMessage({ type: "geo-streamr/restore-audio" });
   chrome.runtime.sendMessage({ type: "geo-streamr/end-queue" });
   const clonedContainer = document.getElementById("geo-streamr-avatar-clone");
   if (clonedContainer) clonedContainer.parentNode?.removeChild(clonedContainer);
@@ -457,28 +451,27 @@ function unfreezeAvatars() {
 
 function dispatchResizeEvent() {
   try {
-    console.log("dispatch resize event");
     window.dispatchEvent(new Event("resize"));
   } catch (error) {
     console.debug("GeoStreamr resize dispatch failed:", error);
   }
 }
 
+let lastExecution = 0;
+const MIN_BROADCAST_INTERVAL = 250;
 function scheduleBroadcast(forceImmediate = false) {
   if (broadcastTimerId) {
     clearTimeout(broadcastTimerId);
     broadcastTimerId = null;
   }
-
-  if (forceImmediate) {
-    sendMirrorUpdate();
-    return;
+  if (forceImmediate || Date.now() - lastExecution > MIN_BROADCAST_INTERVAL) {
+    lastExecution = Date.now();
+    return new Promise((resolve) => {
+      sendMirrorUpdate();
+      resolve();
+    });
   }
-
-  broadcastTimerId = setTimeout(() => {
-    broadcastTimerId = null;
-    sendMirrorUpdate();
-  }, 130);
+  return Promise.resolve();
 }
 
 function sendMirrorUpdate() {

@@ -90,7 +90,7 @@ export default {
         const session = body && body.session;
         const answer = body && body.answer;
         if (!session || !answer) {
-          console.log("Bad POST body", { session, gotAnswer: !!answer });
+          console.debug("Bad POST body", { session, gotAnswer: !!answer });
           const payload = JSON.stringify({
             error: "Bad Request: session and answer required",
           });
@@ -109,7 +109,7 @@ export default {
             console.error("KV put failed:", err);
           });
 
-        console.log("Stored session", session);
+        console.debug("Stored session", session);
         return corsResponse("OK", { status: 200 }, request);
       }
 
@@ -135,7 +135,7 @@ export default {
         await kv
           .delete(session)
           .catch((err) => console.error("KV delete error:", err));
-        console.log("Delivered and deleted session", session);
+        console.debug("Delivered and deleted session", session);
         return corsResponse(
           answer,
           { status: 200, headers: { "Content-Type": "text/plain" } },
