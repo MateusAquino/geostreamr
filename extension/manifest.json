@@ -1,7 +1,7 @@
 {
   "name": "GeoStreamr: Anti-Stream Sniping for GeoGuessr",
   "short_name": "GeoStreamr",
-  "description": "Geostreamr — free and open-source extension to avoid stream sniping on GeoGuessr. Protect your matches by hiding queueing information while transmitting live.",
+  "description": "Geostreamr — free and open-source extension to avoid stream sniping on GeoGuessr.",
   "homepage_url": "https://github.com/MateusAquino/geostreamr",
   "version": "1.0",
   "manifest_version": 3,
