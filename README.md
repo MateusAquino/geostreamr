@@ -5,7 +5,7 @@
 
 <p align="center">
   <a aria-label="Download at Chrome Web Store" href="https://chromewebstore.google.com/category/extensions">
-    <img src="https://img.shields.io/badge/chrome-wip-info?logo=chromewebstore"></img>
+    <img src="https://img.shields.io/badge/chrome-in%20review-info?logo=chromewebstore"></img>
   </a>
   <a aria-label="Download at Firefox Add-ons" href="https://addons.mozilla.org/pt-BR/firefox">
     <img src="https://img.shields.io/badge/firefox-wip-info?logo=firefoxbrowser"></img>
@@ -16,9 +16,26 @@
 
 This is a tool developed to help streamers to play GeoGuessr without showing queueing information (ie. game mode + waiting for opponent overlay). This repository is a work in progress and will be available in chrome web store as soon as possible, then on firefox add-ons.
 
-## 🪶 TODO
+To use this, simply install and click on the extension to open up the Remote Control popup.
 
-- [ ] Improve README.md (+ images)
+| GeoGuessr Duels | GeoStreamr Extension |
+| --------------- | -------------------- |
+| <img src="/assets/screen1.png"/> | <img src="/assets/screen3.png"/> |
+
+
+### 📱 Remote Control
+
+<p align="left">
+  <img width="228px" align="right" src="/assets/screen2.png"/>
+</p>
+
+You can also use the buttons in your remote device, as long as you are in the same WiFi.  
+When you press connect to remote, you'll have to scan a QRCode to share the controls with your phone. Even when the connection is established keep the extension popup open.
+
+
+### 🪶 TODO
+
+- [x] Improve README.md (+ images)
 - [ ] Make it compatible with multiplayer duels
 - [x] Mute "Waiting for Opponent" sound effect
 - [x] Freeze avatar
@@ -27,7 +44,7 @@ This is a tool developed to help streamers to play GeoGuessr without showing que
 - [ ] Publish on Chrome Web Store
 - [ ] Publish on Firefox Add-ons
 
-## 🤝 Contribute
+### 🤝 Contribute
 
 This repository is currently available for contributions. If you'd like to help, here are more things to know:
 
