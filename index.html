@@ -232,6 +232,9 @@
       }
 
       #mirror-frame {
+        display: flex;
+        justify-content: center;
+        overflow: visible;
         position: relative;
         z-index: 1;
         padding: 18px 16px;
@@ -239,7 +242,6 @@
         background: var(--panel-bg);
         border: 1px solid rgba(118, 95, 255, 0.18);
         box-shadow: inset 0 0 0 1px rgba(127, 92, 255, 0.04);
-        overflow: hidden;
         margin-top: auto;
       }
 
@@ -250,8 +252,35 @@
       }
 
       #mirror-container {
-        display: grid;
-        gap: 12px;
+        display: flex;
+        max-width: 0px;
+        justify-content: center;
+        transform-origin: 25% 100%;
+        transform: scale(0.7);
+      }
+
+      @media (min-width: 360px) {
+        #mirror-container {
+          transform: scale(0.8);
+        }
+      }
+
+      @media (min-width: 400px) {
+        #mirror-container {
+          transform: scale(0.9);
+        }
+      }
+
+      @media (min-width: 442px) {
+        #mirror-container {
+          transform: scale(1);
+        }
+      }
+
+      @media (min-width: 540px) {
+        #mirror-container {
+          transform: scale(1);
+        }
       }
 
       #mirror-container[hidden] {

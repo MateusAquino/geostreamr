@@ -1,5 +1,4 @@
 // Background service worker for GeoStreamer extension
-const DOTS_SELECTOR = "[class^=center-content_dotsAnimation]";
 
 let popupWindowId = null;
 
@@ -241,7 +240,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
             if (!window.__GEO_STREAMR) setupAudioMonkey();
 
-            if (document.querySelector(DOTS_SELECTOR)) {
+            if (
+              document.querySelector("[class^=center-content_dotsAnimation]")
+            ) {
               return window.__GEO_STREAMR.killAudio();
             }
           } catch (e) {

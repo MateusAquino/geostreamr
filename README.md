@@ -49,7 +49,7 @@ When you press connect to remote, you'll have to scan a QRCode to share the cont
 This repository is currently available for contributions. If you'd like to help, here are more things to know:
 
 1. Clone this repository and load unpacked extension at `chrome://extensions`.
-2. To test for remote control, open a http server at `/remote`, you can then change the variables temporarily (such as `QR_BASE_URL`).
+2. To test for remote control, open a http server at the root directory, you can then change the variables temporarily (such as `QR_BASE_URL`).
 3. GeoGuessr stops rendering the avatar when the user is starting a match (waiting for opponent), therefore we have to freeze the avatar before starting.
 4. Communication between GeoGuessr and the extension popup is made through the [runtime messages](https://developer.chrome.com/docs/extensions/reference/api/runtime).
 5. Communication between the extension and the remote is made through WebRTC: the extension creates an offer and publishes it on the KV (hosted at cloudflare) via HTTP, the remote then queries for the offer and publishes an accept token on the KV. The extension keeps listening to the KV every 3s until the connection is established.
