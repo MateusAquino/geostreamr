@@ -1,0 +1,54 @@
+{
+  "name": "GeoStreamr: Anti-Stream Sniping for GeoGuessr",
+  "short_name": "GeoStreamr",
+  "description": "Geostreamr — free and open-source extension to avoid stream sniping on GeoGuessr.",
+  "homepage_url": "https://github.com/MateusAquino/geostreamr",
+  "version": "1.1",
+  "manifest_version": 2,
+  "content_scripts": [
+    {
+      "matches": ["https://www.geoguessr.com/*"],
+      "js": ["geoguessr.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": true
+  },
+  "permissions": [
+    "tabs",
+    "storage",
+    "https://www.geoguessr.com/*",
+    "https://geostreamer.mateusaqb.workers.dev/*"
+  ],
+  "web_accessible_resources": [
+    "popup.html",
+    "qrcode.min.js",
+    "geoguessr.js",
+    "audio-bridge.js"
+  ],
+  "browser_action": {
+    "default_icon": {
+      "16": "icon16x.png",
+      "32": "icon32x.png",
+      "48": "icon48x.png",
+      "96": "icon96x.png"
+    },
+    "default_title": "GeoStreamr"
+  },
+  "icons": {
+    "16": "icon16x.png",
+    "32": "icon32x.png",
+    "48": "icon48x.png",
+    "96": "icon96x.png",
+    "128": "icon128x.png"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "geostreamr@mateusaquino",
+      "strict_min_version": "109.0",
+      "data_collection_permissions": {}
+    }
+  }
+}
