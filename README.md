@@ -29,7 +29,7 @@ To use this, simply install and click on the extension to open up the Remote Con
 </p>
 
 You can also use the buttons in your remote device, as long as you are in the same WiFi.  
-When you press connect to remote, you'll have to scan a QRCode to share the controls with your phone. Even when the connection is established keep the extension popup open.
+When you press connect to remote, you'll have to scan a QRCode to share the controls with your phone or another device. Even when the connection is established keep the extension popup open.
 
 ### 🪶 TODO
 

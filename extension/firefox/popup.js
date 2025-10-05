@@ -635,7 +635,7 @@ function resetPhoneUi() {
   }
   if (ui.phoneConnect) {
     ui.phoneConnect.disabled = false;
-    ui.phoneConnect.textContent = "Connect to phone (remote)";
+    ui.phoneConnect.textContent = "Connect remotely";
   }
   if (ui.phoneDisconnect) {
     ui.phoneDisconnect.hidden = true;
@@ -864,7 +864,7 @@ function renderPhoneLink() {
   if (ui.phoneCopyOffer) {
     ui.phoneCopyOffer.disabled = false;
   }
-  setPhoneStatus("Scan the QR code to connect your phone.", "info");
+  setPhoneStatus("Scan the QR code to connect to another device.", "info");
 }
 
 async function waitForIceGathering(peerConnection) {
@@ -946,7 +946,7 @@ function updatePhoneCountdown() {
     clearPhoneTimers();
     return;
   }
-  setPhoneStatus(`Waiting for phone… ${remaining}s`, "info");
+  setPhoneStatus(`Waiting for device… ${remaining}s`, "info");
 }
 
 async function recreateOffer() {
