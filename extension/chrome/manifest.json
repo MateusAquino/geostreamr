@@ -3,7 +3,7 @@
   "short_name": "GeoStreamr",
   "description": "Geostreamr — free and open-source extension to avoid stream sniping on GeoGuessr.",
   "homepage_url": "https://github.com/MateusAquino/geostreamr",
-  "version": "1.1",
+  "version": "1.2",
   "manifest_version": 3,
   "content_scripts": [
     {

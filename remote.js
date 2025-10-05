@@ -627,8 +627,15 @@ function setStatus(text, detail, tone = "info") {
     ui.mirrorFrame.style.display = "none";
     ui.directInfo.style.display = "block";
   } else {
-    ui.mirrorFrame.style.display = "flex";
-    ui.directInfo.style.display = "none";
+    if (tone === "success") {
+      ui.mirrorFrame.style.display = "flex";
+      ui.directInfo.style.display = "none";
+      ui.mirrorContainer.hidden = false;
+    } else {
+      ui.mirrorFrame.style.display = "flex";
+      ui.directInfo.style.display = "none";
+      ui.mirrorContainer.hidden = true;
+    }
   }
   if (typeof detail === "string") {
     state.statusDetail = detail;
