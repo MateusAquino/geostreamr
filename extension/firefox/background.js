@@ -5,7 +5,7 @@ let popupTabId = null;
 
 const POPUP_DIMENSIONS = {
   width: 550,
-  height: 1100,
+  height: 1150,
   top: 100,
   left: 100,
 };

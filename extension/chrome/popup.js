@@ -147,7 +147,7 @@ async function connectToGeoGuessrTab() {
   if (!tab) {
     setStatus(
       "Open GeoGuessr to begin",
-      "We couldn't find a GeoGuessr tab. Open one and reload this popup.",
+      "We couldn't find a GeoGuessr tab. Open GeoGuessr to start mirroring controls.",
       "warn"
     );
     return;

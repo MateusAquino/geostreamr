@@ -9,6 +9,7 @@ const AVATAR_CONTAINER_SELECTOR = "[class^=avatar_avatar]";
 const DOTS_SELECTOR = "[class^=center-content_dotsAnimation]";
 const AVATAR_OVERLAY_ATTR = "data-geo-streamr-avatar-freeze";
 const ONGOING_GAME_SELECTOR = '[class^="game-modes"][class*="hasOngoingGame"]';
+const PSEUDO_SKIP_SELECTOR = '[class^="game-modes"]';
 
 // .center-content_dotsAnimation__pqn1C
 
@@ -18,6 +19,7 @@ let documentObserver = null;
 let popupActive = false;
 let sensitiveModeEnabled = false;
 let broadcastTimerId = null;
+let pendingForceSend = false;
 let nodeIdLookup = new WeakMap();
 const nodeFromId = new Map();
 let nextNodeId = 1;
@@ -27,6 +29,8 @@ let avatarFreezePollingId = null;
 let baselineStyleHost = null;
 const baselineStyleCache = new Map();
 let colorNormalizationElement = null;
+let lastMirrorSnapshot = null;
+let mirrorDirty = true;
 const ESSENTIAL_STYLE_PROPERTIES = new Set([
   "display",
   "position",
@@ -142,8 +146,111 @@ const ESSENTIAL_STYLE_PROPERTIES = new Set([
   "word-break",
   "writing-mode",
   "mix-blend-mode",
+  "appearance",
+  "-webkit-appearance",
+  "box-sizing",
+  "outline",
 ]);
 const DYNAMIC_DIMENSION_PROPERTIES = new Set(["height", "block-size"]);
+const PSEUDO_STYLE_PROPERTIES = new Set([
+  "transition",
+  "content",
+  "display",
+  "position",
+  "top",
+  "right",
+  "bottom",
+  "left",
+  "inset",
+  "inset-block",
+  "inset-inline",
+  "inset-block-start",
+  "inset-block-end",
+  "inset-inline-start",
+  "inset-inline-end",
+  "width",
+  "height",
+  "min-width",
+  "min-height",
+  "max-width",
+  "max-height",
+  "margin",
+  "margin-top",
+  "margin-right",
+  "margin-bottom",
+  "margin-left",
+  "padding",
+  "padding-top",
+  "padding-right",
+  "padding-bottom",
+  "padding-left",
+  "transform",
+  "transform-origin",
+  "opacity",
+  "color",
+  "background",
+  "background-color",
+  "background-image",
+  "background-size",
+  "background-position",
+  "background-repeat",
+  "background-clip",
+  "background-origin",
+  "background-attachment",
+  "background-blend-mode",
+  "border",
+  "border-top",
+  "border-right",
+  "border-bottom",
+  "border-left",
+  "border-width",
+  "border-top-width",
+  "border-right-width",
+  "border-bottom-width",
+  "border-left-width",
+  "border-style",
+  "border-color",
+  "border-radius",
+  "border-top-left-radius",
+  "border-top-right-radius",
+  "border-bottom-right-radius",
+  "border-bottom-left-radius",
+  "box-shadow",
+  "text-shadow",
+  "filter",
+  "backdrop-filter",
+  "clip-path",
+  "mask",
+  "mask-image",
+  "mask-size",
+  "mask-position",
+  "mask-repeat",
+  "mix-blend-mode",
+  "pointer-events",
+  "z-index",
+  "font",
+  "font-family",
+  "font-size",
+  "font-weight",
+  "font-style",
+  "line-height",
+  "letter-spacing",
+  "text-transform",
+  "text-decoration",
+  "text-decoration-line",
+  "text-decoration-style",
+  "text-decoration-color",
+  "text-align",
+  "white-space",
+  "box-sizing",
+  "overflow",
+  "overflow-x",
+  "overflow-y",
+  "outline",
+  "outline-width",
+  "outline-style",
+  "outline-color",
+]);
 
 ensureHideStyle();
 refreshTrackedButton();
@@ -159,6 +266,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   switch (message.type) {
     case "geo-streamr/popup-opened": {
       popupActive = true;
+      invalidateMirrorSnapshot();
       syncPopupOverlayState();
       applyVisibilityState();
       scheduleBroadcast();
@@ -167,6 +275,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     }
     case "geo-streamr/popup-closed": {
       popupActive = false;
+      invalidateMirrorSnapshot();
       syncPopupOverlayState();
       unfreezeAvatars();
       applyVisibilityState();
@@ -177,6 +286,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     case "geo-streamr/apply-visibility": {
       sensitiveModeEnabled = Boolean(message.sensitive);
       applyVisibilityState();
+      markMirrorDirty();
       scheduleBroadcast();
       sendResponse?.({ ok: true });
       return true;
@@ -209,10 +319,13 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       const dispatched = dispatchMirroredEvent(dispatchTarget, message.event);
 
       sendResponse?.({ ok: dispatched, forwarded: dispatched });
+      markMirrorDirty();
+      scheduleBroadcast(true);
       return true;
     }
     case "geo-streamr/request-mirror-refresh": {
-      scheduleBroadcast(true);
+      markMirrorDirty();
+      scheduleBroadcast(true, true);
       sendResponse?.({ ok: true });
       return true;
     }
@@ -228,14 +341,115 @@ function subscribeToDocumentChanges() {
     return;
   }
 
-  documentObserver = new MutationObserver(() => {
-    refreshTrackedButton();
+  documentObserver = new MutationObserver((mutations) => {
+    if (mutationsAffectFunctionLock(mutations)) {
+      refreshTrackedButton();
+    }
   });
 
   documentObserver.observe(document.documentElement || document.body, {
     childList: true,
     subtree: true,
   });
+}
+
+function mutationsAffectFunctionLock(mutations) {
+  if (!Array.isArray(mutations) || mutations.length === 0) {
+    return false;
+  }
+
+  const currentButton = getTrackedButton();
+
+  for (const mutation of mutations) {
+    if (!mutation) {
+      continue;
+    }
+
+    if (mutation.type === "childList") {
+      if (
+        currentButton &&
+        (nodesIncludeTrackedButton(mutation.addedNodes, currentButton) ||
+          nodesIncludeTrackedButton(mutation.removedNodes, currentButton))
+      ) {
+        return true;
+      }
+
+      if (
+        currentButton &&
+        currentButton !== mutation.target &&
+        mutation.target instanceof Node &&
+        currentButton.contains(mutation.target)
+      ) {
+        continue;
+      }
+
+      if (nodeContainsFunctionLock(mutation.target)) {
+        return true;
+      }
+
+      for (const node of mutation.addedNodes || []) {
+        if (nodeContainsFunctionLock(node)) {
+          return true;
+        }
+      }
+
+      for (const node of mutation.removedNodes || []) {
+        if (nodeContainsFunctionLock(node)) {
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
+function nodeContainsFunctionLock(node) {
+  if (!node) {
+    return false;
+  }
+
+  if (node instanceof Element) {
+    if (node.matches(FUNCTION_LOCK_SELECTOR)) {
+      return true;
+    }
+
+    if (typeof node.querySelector === "function") {
+      return Boolean(node.querySelector(FUNCTION_LOCK_SELECTOR));
+    }
+  }
+
+  if (node instanceof Document) {
+    return Boolean(node.querySelector?.(FUNCTION_LOCK_SELECTOR));
+  }
+
+  if (node instanceof DocumentFragment) {
+    return Boolean(node.querySelector?.(FUNCTION_LOCK_SELECTOR));
+  }
+
+  return false;
+}
+
+function nodesIncludeTrackedButton(nodes, button) {
+  if (!button || !nodes) {
+    return false;
+  }
+
+  for (const node of nodes) {
+    if (!node) {
+      continue;
+    }
+
+    if (node === button) {
+      return true;
+    }
+
+    if (node instanceof Element && node.contains(button)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function refreshTrackedButton() {
@@ -259,6 +473,7 @@ function refreshTrackedButton() {
 
   if (candidate === trackedButton && candidate?.isConnected) {
     applyVisibilityState();
+    markMirrorDirty();
     scheduleBroadcast();
     return;
   }
@@ -287,6 +502,7 @@ function attachButtonObserver(button) {
   detachButtonObserver();
 
   buttonObserver = new MutationObserver(() => {
+    markMirrorDirty();
     scheduleBroadcast();
   });
 
@@ -475,28 +691,87 @@ function dispatchResizeEvent() {
 
 let lastExecution = 0;
 const MIN_BROADCAST_INTERVAL = 250;
-function scheduleBroadcast(forceImmediate = false) {
-  if (broadcastTimerId) {
-    clearTimeout(broadcastTimerId);
-    broadcastTimerId = null;
+function invalidateMirrorSnapshot() {
+  lastMirrorSnapshot = null;
+  pendingForceSend = false;
+  mirrorDirty = true;
+}
+
+function markMirrorDirty() {
+  mirrorDirty = true;
+}
+
+function scheduleBroadcast(forceImmediate = false, forceSend = false) {
+  if (forceSend) {
+    pendingForceSend = true;
   }
-  if (forceImmediate || Date.now() - lastExecution > MIN_BROADCAST_INTERVAL) {
+
+  if (!forceSend && !mirrorDirty) {
+    return Promise.resolve();
+  }
+
+  if (forceImmediate) {
+    if (broadcastTimerId) {
+      clearTimeout(broadcastTimerId);
+      broadcastTimerId = null;
+    }
     lastExecution = Date.now();
-    return new Promise((resolve) => {
-      sendMirrorUpdate();
-      resolve();
-    });
+    const shouldForce = forceSend || pendingForceSend;
+    pendingForceSend = false;
+    sendMirrorUpdate(shouldForce);
+    return Promise.resolve();
   }
+
+  if (broadcastTimerId) {
+    return Promise.resolve();
+  }
+
+  const now = Date.now();
+  const elapsed = now - lastExecution;
+
+  if (elapsed >= MIN_BROADCAST_INTERVAL) {
+    lastExecution = now;
+    const shouldForce = pendingForceSend;
+    pendingForceSend = false;
+    sendMirrorUpdate(shouldForce);
+    return Promise.resolve();
+  }
+
+  const delay = MIN_BROADCAST_INTERVAL - elapsed;
+  broadcastTimerId = setTimeout(() => {
+    broadcastTimerId = null;
+    lastExecution = Date.now();
+    const shouldForce = pendingForceSend;
+    pendingForceSend = false;
+    sendMirrorUpdate(shouldForce);
+  }, delay);
+
   return Promise.resolve();
 }
 
-function sendMirrorUpdate() {
+function sendMirrorUpdate(forceSend = false) {
   try {
     const connected = Boolean(popupActive);
-    if (connected) {
-      chrome.runtime.sendMessage(buildMirrorPayload());
+    if (!connected) {
+      invalidateMirrorSnapshot();
+      return;
     }
+
+    const payload = buildMirrorPayload();
+    const snapshot = createMirrorSnapshot(payload);
+    const changed = forceSend || hasMirrorStateChanged(snapshot);
+
+    if (!changed) {
+      mirrorDirty = false;
+      return;
+    }
+
+    payload.timestamp = Date.now();
+    lastMirrorSnapshot = snapshot;
+    mirrorDirty = false;
+    chrome.runtime.sendMessage(payload);
   } catch (error) {
+    mirrorDirty = true;
     console.debug("GeoStreamr mirror broadcast failed:", error);
   }
 }
@@ -511,7 +786,6 @@ function buildMirrorPayload() {
       hiddenInPage: popupActive,
       html: null,
       disabled: true,
-      timestamp: Date.now(),
     };
   }
 
@@ -521,8 +795,37 @@ function buildMirrorPayload() {
     hiddenInPage: popupActive,
     html: buildMirroredMarkup(button),
     disabled: !isButtonInteractable(button),
-    timestamp: Date.now(),
   };
+}
+
+function createMirrorSnapshot(payload) {
+  if (!payload) {
+    return null;
+  }
+
+  return {
+    available: Boolean(payload.available),
+    hiddenInPage: Boolean(payload.hiddenInPage),
+    disabled: Boolean(payload.disabled),
+    html: typeof payload.html === "string" ? payload.html : null,
+  };
+}
+
+function hasMirrorStateChanged(nextSnapshot) {
+  if (!nextSnapshot) {
+    return Boolean(lastMirrorSnapshot);
+  }
+
+  if (!lastMirrorSnapshot) {
+    return true;
+  }
+
+  return (
+    lastMirrorSnapshot.available !== nextSnapshot.available ||
+    lastMirrorSnapshot.hiddenInPage !== nextSnapshot.hiddenInPage ||
+    lastMirrorSnapshot.disabled !== nextSnapshot.disabled ||
+    lastMirrorSnapshot.html !== nextSnapshot.html
+  );
 }
 
 function buildHandshakePayload() {
@@ -540,10 +843,21 @@ function buildMirroredMarkup(button) {
   const clone = button.cloneNode(true);
   clone.setAttribute(MIRROR_ROOT_ATTR, "true");
 
-  syncCloneTree(button, clone);
+  const pseudoRules = [];
+  syncCloneTree(button, clone, pseudoRules);
 
   if (button.classList.contains(SENSITIVE_CLASS)) {
     restoreSensitiveClone(clone);
+  }
+
+  if (pseudoRules.length > 0) {
+    const wrapper = document.createElement("div");
+    const style = document.createElement("style");
+    style.setAttribute("data-geo-streamr-pseudo", "true");
+    style.textContent = pseudoRules.join("\n");
+    wrapper.appendChild(style);
+    wrapper.appendChild(clone);
+    return wrapper.innerHTML;
   }
 
   return clone.outerHTML;
@@ -926,7 +1240,7 @@ function buildInlineStyleString(
   return styleParts.join("; ");
 }
 
-function syncCloneTree(source, target) {
+function syncCloneTree(source, target, pseudoRules) {
   if (
     !source ||
     !target ||
@@ -939,6 +1253,9 @@ function syncCloneTree(source, target) {
   const nodeKey = registerNodeKey(source);
   if (nodeKey) {
     target.setAttribute(NODE_KEY_ATTR, nodeKey);
+    if (Array.isArray(pseudoRules)) {
+      appendPseudoElementRules(source, nodeKey, pseudoRules);
+    }
   }
 
   target.classList.remove(HIDDEN_CLASS, SENSITIVE_CLASS);
@@ -958,9 +1275,169 @@ function syncCloneTree(source, target) {
       sourceChild.nodeType === Node.ELEMENT_NODE &&
       targetChild.nodeType === Node.ELEMENT_NODE
     ) {
-      syncCloneTree(sourceChild, targetChild);
+      syncCloneTree(sourceChild, targetChild, pseudoRules);
     }
   }
+}
+
+function appendPseudoElementRules(sourceElement, nodeKey, pseudoRules) {
+  if (!sourceElement || !nodeKey || !Array.isArray(pseudoRules)) {
+    return;
+  }
+
+  if (
+    typeof sourceElement.matches === "function" &&
+    sourceElement.matches(PSEUDO_SKIP_SELECTOR)
+  ) {
+    return;
+  }
+
+  const beforeRule = buildPseudoElementRule(sourceElement, nodeKey, "::before");
+  if (beforeRule) {
+    pseudoRules.push(beforeRule);
+  }
+
+  const afterRule = buildPseudoElementRule(sourceElement, nodeKey, "::after");
+  if (afterRule) {
+    pseudoRules.push(afterRule);
+  }
+}
+
+function buildPseudoElementRule(sourceElement, nodeKey, pseudo) {
+  if (!sourceElement || !nodeKey || !pseudo) {
+    return null;
+  }
+
+  let computed;
+  try {
+    computed = window.getComputedStyle(sourceElement, pseudo);
+  } catch (_error) {
+    return null;
+  }
+
+  if (!computed) {
+    return null;
+  }
+
+  const contentValue = computed.getPropertyValue("content")?.trim();
+  const backgroundImage = computed.getPropertyValue("background-image")?.trim();
+  const opacityValue = computed.getPropertyValue("opacity")?.trim();
+  const displayValue = computed.getPropertyValue("display")?.trim();
+
+  const hasContent = Boolean(
+    contentValue && contentValue !== "none" && contentValue !== "normal"
+  );
+  const hasBackground = Boolean(backgroundImage && backgroundImage !== "none");
+  const hasOpacity = Boolean(
+    opacityValue && Number.parseFloat(opacityValue) > 0
+  );
+  const hasDisplay = Boolean(displayValue && displayValue !== "none");
+
+  if (!hasContent && !hasBackground && !hasOpacity) {
+    return null;
+  }
+
+  const declarations = [];
+  PSEUDO_STYLE_PROPERTIES.forEach((property) => {
+    let value;
+    try {
+      value = computed.getPropertyValue(property);
+    } catch (_error) {
+      value = "";
+    }
+    if (!value) {
+      return;
+    }
+
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return;
+    }
+
+    if (
+      property === "content" &&
+      (trimmed === "none" || trimmed === "normal")
+    ) {
+      return;
+    }
+
+    if (
+      property !== "content" &&
+      (trimmed === "auto" ||
+        trimmed === "normal" ||
+        (property === "display" && !hasDisplay))
+    ) {
+      return;
+    }
+
+    const rewritten = rewriteCssPropertyValue(property, trimmed);
+    if (!rewritten) {
+      return;
+    }
+
+    declarations.push(`${property}: ${rewritten}`);
+  });
+
+  if (!declarations.length) {
+    return null;
+  }
+
+  const escapedKey = escapeNodeKeyForSelector(nodeKey);
+  const selector = `[${NODE_KEY_ATTR}="${escapedKey}"]${pseudo}`;
+  return `${selector} { ${declarations.join("; ")} }`;
+}
+
+function escapeNodeKeyForSelector(key) {
+  if (typeof CSS !== "undefined" && typeof CSS.escape === "function") {
+    return CSS.escape(key);
+  }
+  return key.replace(/["\\]/g, "\\$&");
+}
+
+function rewriteCssPropertyValue(property, value) {
+  if (!value) {
+    return value;
+  }
+
+  if (property === "content") {
+    return value;
+  }
+
+  if (value.includes("url(")) {
+    return rewriteCssUrls(value);
+  }
+
+  return value;
+}
+
+function rewriteCssUrls(value) {
+  if (!value) {
+    return value;
+  }
+
+  return value.replace(/url\(([^)]+)\)/gi, (match, raw) => {
+    if (!raw) {
+      return match;
+    }
+
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      return match;
+    }
+
+    const unquoted = trimmed.replace(/^['"]|['"]$/g, "");
+    const absolute = convertToAbsoluteUrl(unquoted);
+    if (!absolute || absolute === unquoted) {
+      return match;
+    }
+
+    const quote = trimmed.startsWith('"')
+      ? '"'
+      : trimmed.startsWith("'")
+      ? "'"
+      : "";
+    return `url(${quote}${absolute}${quote})`;
+  });
 }
 
 function registerNodeKey(node) {
@@ -1008,6 +1485,7 @@ function resetNodeMappings() {
   nodeIdLookup = new WeakMap();
   nodeFromId.clear();
   nextNodeId = 1;
+  invalidateMirrorSnapshot();
 }
 
 function clearNodeKeyAttributes(root) {

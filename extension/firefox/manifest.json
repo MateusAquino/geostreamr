@@ -26,7 +26,8 @@
     "popup.html",
     "qrcode.min.js",
     "geoguessr.js",
-    "audio-bridge.js"
+    "audio-bridge.js",
+    "geoguessr.woff2"
   ],
   "browser_action": {
     "default_icon": {
@@ -47,8 +48,7 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "geostreamr@mateusaquino",
-      "strict_min_version": "109.0",
-      "data_collection_permissions": {}
+      "strict_min_version": "109.0"
     }
   }
 }

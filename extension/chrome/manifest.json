@@ -18,7 +18,12 @@
   "permissions": ["tabs", "storage", "scripting"],
   "web_accessible_resources": [
     {
-      "resources": ["popup.html", "qrcode.min.js", "geoguessr.js"],
+      "resources": [
+        "popup.html",
+        "qrcode.min.js",
+        "geoguessr.js",
+        "geoguessr.woff2"
+      ],
       "matches": ["<all_urls>"]
     }
   ],
