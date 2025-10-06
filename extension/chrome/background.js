@@ -3,8 +3,19 @@
 let popupWindowId = null;
 
 // Handle extension icon click
-chrome.action.onClicked.addListener(() => {
+chrome.action.onClicked.addListener(async () => {
   const extensionPageUrl = chrome.runtime.getURL("popup.html");
+
+  // Close existing popup window if it exists
+  if (popupWindowId !== null) {
+    try {
+      await chrome.windows.remove(popupWindowId);
+    } catch (error) {
+      // Window might already be closed, ignore error
+      console.debug("Failed to close existing popup:", error);
+    }
+    popupWindowId = null;
+  }
 
   chrome.windows.create(
     {

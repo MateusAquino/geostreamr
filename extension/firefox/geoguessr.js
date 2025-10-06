@@ -9,6 +9,7 @@ const AVATAR_CONTAINER_SELECTOR = "[class^=avatar_avatar]";
 const DOTS_SELECTOR = "[class^=center-content_dotsAnimation]";
 const AVATAR_OVERLAY_ATTR = "data-geo-streamr-avatar-freeze";
 const AUDIO_BRIDGE_SCRIPT_ID = "geo-streamr-audio-bridge";
+const ONGOING_GAME_SELECTOR = '[class^="game-modes"][class*="hasOngoingGame"]';
 
 // .center-content_dotsAnimation__pqn1C
 
@@ -1202,12 +1203,12 @@ function ensureHideStyle() {
   const style = document.createElement("style");
   style.id = STYLE_ELEMENT_ID;
   style.textContent = `
-    ${FUNCTION_LOCK_SELECTOR}.${HIDDEN_CLASS} {
+    ${FUNCTION_LOCK_SELECTOR}.${HIDDEN_CLASS}:not(:has(${ONGOING_GAME_SELECTOR})) {
       visibility: hidden !important;
       pointer-events: none !important;
     }
 
-    ${FUNCTION_LOCK_SELECTOR}.${SENSITIVE_CLASS} {
+    ${FUNCTION_LOCK_SELECTOR}.${SENSITIVE_CLASS}:not(:has(${ONGOING_GAME_SELECTOR})) {
       position: relative !important;
       pointer-events: none !important;
     }
@@ -1241,6 +1242,14 @@ function ensureHideStyle() {
 
     [class^="player-section_content"] [class^="footer_root__"] {
       visibility: hidden;
+    }
+
+    ${FUNCTION_LOCK_SELECTOR} > *:has(${ONGOING_GAME_SELECTOR}) > *::before {
+      display: none !important;
+    }
+
+    ${FUNCTION_LOCK_SELECTOR} > * > :has(${ONGOING_GAME_SELECTOR}) > * {
+      visibility: visible !important;
     }
   `;
 
