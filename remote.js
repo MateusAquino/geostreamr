@@ -276,13 +276,6 @@ function applyMirrorUpdate(payload) {
     primaryNode?.getAttribute(MIRROR_NODE_KEY_ATTR) || null;
   state.primaryPathKeys = primaryNode ? collectAncestorKeys(primaryNode) : [];
 
-  if (ui.placeholderMessage) {
-    const primaryLabel = extractPrimaryActionText(primaryNode || mirrorRoot);
-    ui.placeholderMessage.textContent = primaryLabel
-      ? `Tap “${primaryLabel}” to play.`
-      : "Controls mirrored from GeoGuessr.";
-  }
-
   const disabled = Boolean(payload?.disabled);
   const detail = disabled
     ? "GeoGuessr paused this control for a moment."
@@ -333,18 +326,6 @@ function updateVisibilityIndicator(hiddenInPage) {
   }
 }
 
-function extractPrimaryActionText(root) {
-  if (!root) {
-    return null;
-  }
-  const candidate = root.querySelector("button, [role='button']");
-  if (!candidate) {
-    return null;
-  }
-  const text = (candidate.textContent || "").trim().replace(/\s+/g, " ");
-  return text.length ? text : null;
-}
-
 function collectAncestorKeys(node) {
   const keys = [];
   let current = node;
@@ -356,18 +337,6 @@ function collectAncestorKeys(node) {
     current = current.parentElement;
   }
   return keys;
-}
-
-function handlePrimaryActionClick(event) {
-  event.preventDefault();
-  if (!state.primaryTargetKey) {
-    requestMirrorRefresh();
-    return;
-  }
-  forwardMirrorInteraction("click", {
-    targetKey: state.primaryTargetKey,
-    pathKeys: state.primaryPathKeys,
-  });
 }
 
 function handleMirrorInteraction(event, eventType) {

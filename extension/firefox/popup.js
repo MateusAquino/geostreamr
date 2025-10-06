@@ -378,43 +378,6 @@ function applyMirrorUpdate(payload) {
   });
 }
 
-function extractPrimaryActionText(container) {
-  if (!container) {
-    return null;
-  }
-  const button = container.querySelector("button, [role='button']");
-  if (!button) {
-    return null;
-  }
-  const text = (button.textContent || "").trim().replace(/\s+/g, " ");
-  return text.length > 0 ? text : null;
-}
-
-function collectAncestorKeys(node) {
-  const keys = [];
-  let current = node;
-  while (current && current.nodeType === Node.ELEMENT_NODE) {
-    const key = current.getAttribute(MIRROR_NODE_KEY_ATTR);
-    if (key && !keys.includes(key)) {
-      keys.push(key);
-    }
-    current = current.parentElement;
-  }
-  return keys;
-}
-
-function handlePrimaryActionClick(event) {
-  event.preventDefault();
-  if (!state.primaryTargetKey) {
-    requestMirrorRefresh();
-    return;
-  }
-  forwardMirrorInteraction("click", {
-    targetKey: state.primaryTargetKey,
-    pathKeys: state.primaryPathKeys,
-  });
-}
-
 function handleMirrorInteraction(event, eventType) {
   if (!state.connectedTabId) {
     return;
