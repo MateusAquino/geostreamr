@@ -3,13 +3,19 @@
   "short_name": "GeoStreamr",
   "description": "Geostreamr — free and open-source extension to avoid stream sniping on GeoGuessr.",
   "homepage_url": "https://github.com/MateusAquino/geostreamr",
-  "version": "1.2",
+  "version": "1.2.1",
   "manifest_version": 3,
   "content_scripts": [
     {
       "matches": ["https://www.geoguessr.com/*"],
       "js": ["geoguessr.js"],
       "run_at": "document_start"
+    },
+    {
+      "matches": ["https://www.geoguessr.com/*"],
+      "js": ["audio-bridge.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
     }
   ],
   "background": {
@@ -18,12 +24,7 @@
   "permissions": ["tabs", "storage", "scripting"],
   "web_accessible_resources": [
     {
-      "resources": [
-        "popup.html",
-        "qrcode.min.js",
-        "geoguessr.js",
-        "geoguessr.woff2"
-      ],
+      "resources": ["popup.html", "qrcode.min.js", "geoguessr.woff2"],
       "matches": ["<all_urls>"]
     }
   ],
