@@ -4,17 +4,17 @@
 <p align="center">🌎 Anti-Stream Sniping for GeoGuessr.</p>
 
 <p align="center">
-  <a aria-label="Download at Chrome Web Store" href="https://chromewebstore.google.com/category/extensions">
-    <img src="https://img.shields.io/badge/chrome-in%20review-info?logo=chromewebstore"></img>
+  <a aria-label="Download at Chrome Web Store" href="https://chromewebstore.google.com/detail/pgnimikgjilcijpgdngdnmfemdljmoka">
+    <img src="https://img.shields.io/badge/chrome-1.2.1-success?logo=chromewebstore&logoColor=white"></img>
   </a>
   <a aria-label="Download at Firefox Add-ons" href="https://addons.mozilla.org/pt-BR/firefox">
-    <img src="https://img.shields.io/badge/firefox-in%20review-info?logo=firefoxbrowser"></img>
+    <img src="https://img.shields.io/badge/firefox-in%20review-blue?logo=firefoxbrowser"></img>
   </a>
 </p>
 
 ## 🗺️ GeoStreamr
 
-This is a tool developed to help streamers to play GeoGuessr without showing queueing information (ie. game mode + waiting for opponent overlay). The project now ships both Chrome and Firefox WebExtension builds; publishing to each store is still in progress.
+This is a tool developed to help streamers to play GeoGuessr without showing queueing information (ie. game mode + waiting for opponent overlay). The project now ships both Chrome and Firefox WebExtension builds; publishing to Firefox Add-ons is still in progress.
 
 To use this, simply install and click on the extension to open up the Remote Control popup.
 
@@ -39,7 +39,7 @@ When you press connect to remote, you'll have to scan a QRCode to share the cont
 - [x] Freeze avatar
 - [ ] Localization
 - [x] Make it compatible with Firefox
-- [ ] Publish on Chrome Web Store
+- [x] Publish on Chrome Web Store
 - [ ] Publish on Firefox Add-ons
 
 ### 🤝 Contribute
