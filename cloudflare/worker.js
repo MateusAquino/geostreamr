@@ -101,7 +101,7 @@ export default {
           );
         }
 
-        const TTL_SECONDS = 300;
+        const TTL_SECONDS = 100;
         // If KV supports options, pass TTL; in-memory ignores it
         await kv
           .put(session, answer, { expirationTtl: TTL_SECONDS })
@@ -111,6 +111,18 @@ export default {
 
         console.debug("Stored session", session);
         return corsResponse("OK", { status: 200 }, request);
+      }
+
+      if (request.method === "GET" && pathname === "/") {
+        const payload = JSON.stringify({
+          message:
+            "This is a Cloudflare Worker for GeoStreamr, it serves the purpose of handling WebRTC offer/accept tokens for controlling GeoGuessr queues remotely. More information (+ source code) at: https://github.com/MateusAquino/geostreamr/",
+        });
+        return corsResponse(
+          payload,
+          { status: 200, headers: { "Content-Type": "application/json" } },
+          request
+        );
       }
 
       // GET /get?session=...
